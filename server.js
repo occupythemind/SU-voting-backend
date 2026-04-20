@@ -21,20 +21,19 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('dev'));
-app.use(session({ secret: process.env.SECRET_KEY, resave: false, saveUninitialized: false }));
-app.use(passport.initialize());
-app.use(passport.session()); // Enables session-based login
 app.use(session({
-    secret: process.env.SECRET_KEY, // Keep this safe
-    resave: false,             // Don't save session if unmodified
-    saveUninitialized: false,  // Don't create session until something is stored
-    rolling: true,             // <--- IMPORTANT: Resets the maxAge on every request
+    secret: process.env.SECRET_KEY || 'default-secret',
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
     cookie: {
-        httpOnly: true,        // Prevents JS from reading the cookie (Security)
-        secure: false,         // Set to true if using HTTPS
-        maxAge: 7 * 24 * 60 * 60 * 1000 // <--- 7 days in milliseconds
+        httpOnly: true,
+        secure: false,
+        maxAge: 7 * 24 * 60 * 60 * 1000
     }
 }));
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 const pool = require('./config/db');
@@ -43,7 +42,7 @@ const pool = require('./config/db');
 const authRoutes = require('./api/v1/routes/authRoutes');
 const contestRoutes = require('./api/v1/routes/contestRoutes');
 const adminManageAuthRoutes = require('./api/admin/routes/authRoutes');
-const adminManageCompetitionRoutes = require('./api/admin/routes/competitionRoutes');
+const adminManageCompetitionRoutes = require('./api/admin/routes/contestRoutes');
 const adminManagePaymentRoutes = require('./api/admin/routes/paymentRoutes');
 const adminManagePermissionRoutes = require('./api/admin/routes/permissionRoutes');
 
