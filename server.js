@@ -42,8 +42,7 @@ const pool = require('./config/db');
 const authRoutes = require('./api/v1/routes/authRoutes');
 const contestRoutes = require('./api/v1/routes/contestRoutes');
 const adminManageAuthRoutes = require('./api/admin/routes/authRoutes');
-const adminManageCompetitionRoutes = require('./api/admin/routes/contestRoutes');
-const adminManagePaymentRoutes = require('./api/admin/routes/paymentRoutes');
+const adminManageContestRoutes = require('./api/admin/routes/contestRoutes');
 const adminManagePermissionRoutes = require('./api/admin/routes/permissionRoutes');
 
 // Public
@@ -52,8 +51,7 @@ app.use('/api/v1/categories', contestRoutes);
 
 // Admin (to manage these functionalities)
 app.use('/api/admin/auth', adminManageAuthRoutes);
-app.use('/api/admin/competitions', adminManageCompetitionRoutes);
-app.use('/api/admin/payments', adminManagePaymentRoutes);
+app.use('/api/admin/competitions', adminManageContestRoutes);
 app.use('/api/admin/permissions', adminManagePermissionRoutes);
 
 // Test route
@@ -73,5 +71,5 @@ app.get('/', async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`⚔️  ETI Code Games Server running on http://localhost:${PORT}`);
+    console.log(`UNIDEL Voting System: Server running on http://localhost:${PORT}`);
 });

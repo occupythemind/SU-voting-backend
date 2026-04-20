@@ -2,12 +2,16 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  // db url format --> protocol://username:password@hostname:port/database_name?option=value
   connectionString: process.env.DATABASE_URL,
 });
 
 pool.on('connect', () => {
-  console.log('✅ New client connected to PostgreSQL');
+  const env = process.env.NODE_ENV || 'development';
+  console.log(`✅ Connected to ${env} database`);
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
 });
 
 module.exports = pool;

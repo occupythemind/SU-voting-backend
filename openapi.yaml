@@ -1,0 +1,799 @@
+openapi: 3.0.3
+info:
+  title: UNIDEL Voting System API
+  version: 1.0.0
+  description: |
+    REST API documentation for the UNIDEL Voting System backend.
+    This API supports student registration and login, category browsing, voting, vote removal,
+    and administrator views for contest results and audit logs.
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+security:
+  - sessionAuth: []
+tags:
+  - name: Auth
+    description: Student authentication and profile management
+  - name: Voting
+    description: Category and contestant browsing, voting, and vote cancellation
+  - name: Admin
+    description: Administrative contest management, results, and audit logs
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+      description: >-
+        Session cookie name used by express-session. The frontend must send
+        credentials (cookies) with requests to protected endpoints.
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        matric_number:
+          type: string
+        full_name:
+          type: string
+        is_active:
+          type: boolean
+        is_admin:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    RegisterRequest:
+      type: object
+      required:
+        - full_name
+        - matric_number
+        - password
+      properties:
+        full_name:
+          type: string
+        matric_number:
+          type: string
+        password:
+          type: string
+          format: password
+    LoginRequest:
+      type: object
+      required:
+        - matric_number
+        - password
+      properties:
+        matric_number:
+          type: string
+        password:
+          type: string
+          format: password
+    UpdateProfileRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+        password:
+          type: string
+          format: password
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Contestant:
+      type: object
+      properties:
+        contest_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        matric_number:
+          type: string
+        vote_count:
+          type: integer
+          format: int32
+    CategoryContestantsResponse:
+      type: object
+      properties:
+        contestants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contestant'
+        user_vote:
+          type: string
+          format: uuid
+          nullable: true
+          description: Contestant the logged-in student has voted for in this category
+    VoteRequest:
+      type: object
+      properties:
+        contest_id:
+          type: string
+          format: uuid
+          description: ID of the contestant entry to vote for or remove
+    AdminCategoryCreateRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+    AddContestantRequest:
+      type: object
+      required:
+        - user_id
+        - category_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+    RemoveContestantRequest:
+      type: object
+      required:
+        - contest_id
+      properties:
+        contest_id:
+          type: string
+          format: uuid
+    ContestResultCategory:
+      type: object
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        category_title:
+          type: string
+        category_description:
+          type: string
+        contestants:
+          type: array
+          items:
+            type: object
+            properties:
+              contest_id:
+                type: string
+                format: uuid
+              candidate_id:
+                type: string
+                format: uuid
+              candidate_name:
+                type: string
+              vote_count:
+                type: integer
+              voters:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    voter_id:
+                      type: string
+                      format: uuid
+                    full_name:
+                      type: string
+                    matric_number:
+                      type: string
+                    voted_at:
+                      type: string
+                      format: date-time
+    CategoryResultVisual:
+      type: object
+      properties:
+        contestants:
+          type: array
+          items:
+            type: object
+            properties:
+              contest_id:
+                type: string
+                format: uuid
+              candidate_id:
+                type: string
+                format: uuid
+              candidate_name:
+                type: string
+              vote_count:
+                type: integer
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        matric_number:
+          type: string
+        action:
+          type: string
+          description: 'vote:<contest_id> or unvote:<contest_id>'
+        created_at:
+          type: string
+          format: date-time
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new student and log in automatically
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Student created and session started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Log in a student using matric number and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid credentials or missing fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account not activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get the current authenticated student's profile
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Student profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Auth
+      summary: Update profile or password for the authenticated student
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/categories:
+    get:
+      tags:
+        - Voting
+      summary: List all contest categories
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/categories/{id}/contestants:
+    get:
+      tags:
+        - Voting
+      summary: Get contestants for a category and current user vote
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Category ID
+      responses:
+        '200':
+          description: Contestants for the category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryContestantsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/categories/{id}/vote:
+    post:
+      tags:
+        - Voting
+      summary: Cast a vote for a contestant in a category
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteRequest'
+      responses:
+        '201':
+          description: Vote recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Validation error or already voted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Contestant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/categories/{id}/unvote:
+    post:
+      tags:
+        - Voting
+      summary: Remove the authenticated student's vote in a category
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Category ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteRequest'
+      responses:
+        '200':
+          description: Vote removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No active vote found to remove
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/competitions:
+    post:
+      tags:
+        - Admin
+      summary: Create a new contest category
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCategoryCreateRequest'
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  category:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated or admin required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Admin
+      summary: Update a contest category by ID
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCategoryCreateRequest'
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  category:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Admin
+      summary: Delete a contest category by ID
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Category ID
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  category:
+                    $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/competitions/addContestant:
+    post:
+      tags:
+        - Admin
+      summary: Add a student as a contestant in a category
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddContestantRequest'
+      responses:
+        '201':
+          description: Contestant added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  contest:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      user_id:
+                        type: string
+                        format: uuid
+                      category_id:
+                        type: string
+                        format: uuid
+                      created_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Validation error or duplicate contestant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/competitions/removeContestant:
+    post:
+      tags:
+        - Admin
+      summary: Remove a contestant entry from a category
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveContestantRequest'
+      responses:
+        '200':
+          description: Contestant removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  contest:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      user_id:
+                        type: string
+                        format: uuid
+                      category_id:
+                        type: string
+                        format: uuid
+                      created_at:
+                        type: string
+                        format: date-time
+        '404':
+          description: Contestant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/competitions/results:
+    get:
+      tags:
+        - Admin
+      summary: List vote totals and voters for every category and contestant
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Full contest results grouped by category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContestResultCategory'
+        '401':
+          description: Not authenticated or not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/competitions/categories/{id}/results:
+    get:
+      tags:
+        - Admin
+      summary: Get vote counts for a single category in chart-ready format
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Category ID
+      responses:
+        '200':
+          description: Category result data for charting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResultVisual'
+        '404':
+          description: Category not found or no contestants in category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/competitions/audit-logs:
+    get:
+      tags:
+        - Admin
+      summary: Retrieve the voting audit log with timestamps
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audit_logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLogEntry'
+        '401':
+          description: Not authenticated or not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
