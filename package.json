@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db-local:init": "npx dotenv-cli -e .env -- psql -f init.sql",
+    "db-local:init": "npx dotenv-cli -e .env.local -- psql -f init.sql",
     "db:init": "node init-db.js",
     "start": "node server.js",
     "dev": "nodemon server.js"
