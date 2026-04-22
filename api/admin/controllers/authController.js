@@ -5,7 +5,7 @@ const pool = require('../../../config/db');
 async function getUsers(req, res) {
     try {
         const result = await pool.query(
-            `SELECT id, username, email, full_name, phone, school_name, is_active, is_admin, created_at 
+            `SELECT id, full_name, matric_number, is_active, is_admin, created_at 
              FROM users
              ORDER BY created_at DESC;`
         );
@@ -26,7 +26,7 @@ async function getUserById(req, res) {
         const { id } = req.params;
 
         const result = await pool.query(
-            `SELECT id, username, email, full_name, phone, school_name, is_active, is_admin, created_at 
+            `SELECT id, full_name, matric_number, is_active, is_admin, created_at 
              FROM users
              WHERE id = $1;`,
             [id]
@@ -51,20 +51,14 @@ async function updateUser(req, res) {
     try {
         const { id } = req.params;
         const {
-            username,
-            email,
             full_name,
-            phone,
-            school_name
+            matric_number,
         } = req.body;
 
         // Prevent empty updates
         if (
-            !username &&
-            !email &&
             !full_name &&
-            !phone &&
-            !school_name
+            !matric_number
         ) {
             return res.status(400).json({
                 error: "Provide at least one field to update"
@@ -74,19 +68,13 @@ async function updateUser(req, res) {
         const result = await pool.query(
             `UPDATE users
              SET
-                username = COALESCE($1, username),
-                email = COALESCE($2, email),
-                full_name = COALESCE($3, full_name),
-                phone = COALESCE($4, phone),
-                school_name = COALESCE($5, school_name)
-             WHERE id = $6
-             RETURNING id, username, email, full_name, phone, school_name, is_active, is_admin, created_at;`,
+                full_name = COALESCE($1, full_name),
+                matric_number = COALESCE($2, matric_number)
+             WHERE id = $3
+             RETURNING id, full_name, matric_number, is_active, is_admin, created_at;`,
             [
-                username,
-                email,
                 full_name,
-                phone,
-                school_name,
+                matric_number,
                 id
             ]
         );
@@ -114,7 +102,7 @@ async function deleteUser(req, res) {
         const result = await pool.query(
             `DELETE FROM users
              WHERE id = $1
-             RETURNING id, email;`,
+             RETURNING id, matric_number;`,
             [id]
         );
 

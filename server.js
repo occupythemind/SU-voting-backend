@@ -51,7 +51,7 @@ app.use('/api/v1/categories', contestRoutes);
 
 // Admin (to manage these functionalities)
 app.use('/api/admin/auth', adminManageAuthRoutes);
-app.use('/api/admin/competitions', adminManageContestRoutes);
+app.use('/api/admin/categories', adminManageContestRoutes);
 app.use('/api/admin/permissions', adminManagePermissionRoutes);
 
 // Test route

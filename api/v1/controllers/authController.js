@@ -11,6 +11,10 @@ async function userRegistration(req, res, next) {
       });
     }
 
+    if (matric_number.length < 6 && matric_number.length > 12) {
+      return res.status(400).json({ error: 'matric_number must be within the range of 6-12 characters' });
+    }
+
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
@@ -27,8 +31,8 @@ async function userRegistration(req, res, next) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await pool.query(
-      `INSERT INTO users (full_name, matric_number, password, is_active)
-       VALUES ($1, $2, $3, true)
+      `INSERT INTO users (full_name, matric_number, password)
+       VALUES ($1, $2, $3)
        RETURNING id, matric_number, full_name, is_active, is_admin, created_at`,
       [full_name, matric_number, hashedPassword]
     );
@@ -139,7 +143,7 @@ async function updateMyProfile(req, res) {
        SET full_name = COALESCE($1, full_name),
            password = COALESCE($2, password)
        WHERE id = $3
-       RETURNING id, matric_number, full_name`,
+       RETURNING id, matric_number, full_name, is_active, created_at`,
       [full_name, hashedPassword, userId]
     );
 
