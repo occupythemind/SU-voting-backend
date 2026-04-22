@@ -341,4 +341,4 @@ ISC
 
 Developed with focus on security, scalability, and compliance.
 
-**Questions or Issues?** Review the [OpenAPI documentation](./openapi.yaml) or check the INSTRUCTION notes in the NOTE/ directory.
+**Questions or Issues?** Review the [OpenAPI documentation](./openapi.yaml).
