@@ -13,14 +13,25 @@ const app = express();
 
 // Middleware
 app.use(helmet());
+
+// Trust the first proxy (important for secure cookies behind reverse proxies like code.run)
+app.set('trust proxy', 1);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: function (origin, callback) {
+        // Allow the specified frontend URL or any origin in development
+        const allowedOrigin = process.env.FRONTEND_URL || origin || '*';
+        callback(null, allowedOrigin);
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type',]
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
 app.use(express.json());
 app.use(morgan('dev'));
+
+const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
     secret: process.env.SECRET_KEY || 'default-secret',
     resave: false,
@@ -28,7 +39,8 @@ app.use(session({
     rolling: true,
     cookie: {
         httpOnly: true,
-        secure: false,
+        secure: isProduction, // Set to true if in production
+        sameSite: isProduction ? 'none' : 'lax', // Must be 'none' for cross-origin cookies
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 }));
